@@ -117,7 +117,7 @@ describe('VDOM\'s createClass functionality', function() {
     it("can attach external child and attributes to the component", function() {
         var CustomContainer = VDOM.createClass('customContainer', {
             render : function() {
-                return VDOM.createElement('div')
+                return VDOM.createElement('div');
             }
         });
 
@@ -128,12 +128,10 @@ describe('VDOM\'s createClass functionality', function() {
             VDOM.createElement('p', null, 'WORLD!')
         ]);
 
-        VDOM.render(vElem, $('#test-container')[0]);
-
-        expect($('p').length).to.equal(2);
-        expect($('.custom-container').hasClass('another-class')).to.be.true;
-        expect($('p').eq(0).text()).to.equal('Hello,');
-        expect($('p').eq(1).text()).to.equal('WORLD!');
+        expect(vElem.children.length).to.equal(2);
+        expect(vElem.attrs.className).to.equal('another-class');
+        expect(vElem.children[0].children).to.equal('Hello,');
+        expect(vElem.children[1].children).to.equal('WORLD!');
     });
 });
 
@@ -196,7 +194,6 @@ describe('Virtual Dom\'s render function', function() {
         ]);
 
         VDOM.render(vdomTree, $('#test-container')[0]);
-
         expect($('#test-container')
                 .children('.start-tree')
                 .children('.child')
@@ -270,6 +267,7 @@ describe('VDOM\'s State Functionality', function() {
                 };
             },
             render : function() {
+                console.log('this is the state', this.state);
                 return VDOM.createElement('span', null, this.state.count);
             }
         });
