@@ -26,11 +26,12 @@ class Component {
 		this._tag;
 		this._attrs;
 		this._children;
-		this._events;
+		this._state;
 		//Interface variables
 		this.children = children;
 		this.tag = tag;
 		this.attrs = attrs;
+		this.dirty = true;
 	}
 
 	get tag(){
@@ -52,7 +53,7 @@ class Component {
 	addClass(className) {
 		if(!this.attrs) this.attrs = {className};
 		else if(!this.attrs.hasOwnProperty('className') || !this.attrs.className) this.attrs.className = className.split(' ').map((name) => kebabCase(name)).join(' ');
-		else this.attrs.className += ' ' + kebabCase(className);
+		else this.attrs.className += ' ' + className;
 	}
 	get children(){
 		return this._children;
@@ -61,9 +62,29 @@ class Component {
 		if(!children && children !== 0) children = null;
 		this._children = children;
 	}
+	get state(){
+		return this._state;
+	}
+	set state(state){
+		if(this.attrs && state){
+			let attrs = this.attrs;
+			let self = this;
+			Object.keys(attrs).forEach((key) => {
+				if(attrs[key] instanceof Function) {
+					let func = attrs[key];
+					attrs[key] = (event) => {
+						func.call(self, event);
+						self.dirty = true;
+						// self.render();
+					};
+				}
+			});
+		}
+		this._state = state;
+	}
 	render(dataId) {
 		if(!dataId) dataId = [];
-		var element;
+		let element;
 		//Handles the tag
 		if(typeof this.tag === 'string') element = $(document.createElement(this.tag));
 		else if (this.tag instanceof Component) element = this.tag.render(dataId);
@@ -83,13 +104,38 @@ class Component {
 				element.append(childEl.render([].concat(dataId, elIndex)));
 			});
 		}
-
 		element.attr('data-id', createDataId(dataId));
 		if(this.attrs) this.attrs['data-id'] = createDataId(dataId);
 		else this.attrs = {['data-id'] : createDataId(dataId)};
 
 		//Returns the element
 		return element;
+	}
+	attachState(state){
+		this.state = state;
+		if(this.children instanceof Array) this.children.forEach((child) => child.state = state);
+	}
+}
+
+class DomClass {
+	constructor(className, options){
+		this._name;
+		this.name = className;
+		Object.keys(options).forEach((key) => this[key] = options[key]);
+
+		if(this.setState) this.state = this.setState();
+
+		let component = options.render.call(this);
+		component.addClass(this.name);
+		if(this.state) component.attachState(this.state);
+		return component;
+	}
+	get name(){
+		return this._name;
+	}
+	set name(name){
+		if(!name) throw new SyntaxError('Need a valid class name on creation.');
+		this._name = kebabCase(name);
 	}
 }
 
@@ -99,15 +145,7 @@ let createElement = (tag, attrs, children) => {
 
 let createClass = (className, options) => {
 	if(!className) throw new SyntaxError('Need a valid class name on creation.');
-	return () => {
-		var init = {};
-		if(options.hasOwnProperty('setState')) init.state = options.setState();
-		if(options.hasOwnProperty('tick')) init.tick = options.tick;
-		var oldEl = options.render.call(init);
-		console.log('this is the oldEl', oldEl);
-		oldEl.addClass(className);
-		return oldEl;
-	};
+	return () => new DomClass(className, options);
 };
 
 let render = function(element, attachTo){

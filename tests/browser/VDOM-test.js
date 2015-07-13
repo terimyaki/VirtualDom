@@ -267,7 +267,6 @@ describe('VDOM\'s State Functionality', function() {
                 };
             },
             render : function() {
-                console.log('this is the state', this.state);
                 return VDOM.createElement('span', null, this.state.count);
             }
         });
