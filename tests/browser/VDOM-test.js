@@ -276,7 +276,7 @@ describe('VDOM\'s State Functionality', function() {
         expect($('#test-container').find('.custom-button').text()).to.equal("0");
     });
 
-    it('update actual DOM if there were any changes to the virtual DOM (click event)', function() {
+    xit('update actual DOM if there were any changes to the virtual DOM (click event)', function() {
         var buttonWidget = VDOM.createClass('customButton', {
             setState : function() {
                 return {

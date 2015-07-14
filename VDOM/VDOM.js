@@ -67,27 +67,31 @@ class Component {
 	}
 	set state(state){
 		if(this.attrs && state){
-			let attrs = this.attrs;
-			let self = this;
+			let self = this,
+				attrs = this.attrs;
 			Object.keys(attrs).forEach((key) => {
 				if(attrs[key] instanceof Function) {
 					let func = attrs[key];
 					attrs[key] = (event) => {
+						console.log('func', func, 'this is event', event, 'this is this', this);
 						func.call(self, event);
 						self.dirty = true;
-						// self.render();
+						console.log(self);
+						self.rerender();
 					};
 				}
 			});
 		}
 		this._state = state;
 	}
-	render(dataId) {
+	render(rerenderFunc, dataId) {
 		if(!dataId) dataId = [];
+		if(!this.rerender) this.rerender = rerenderFunc;
+		console.log('this is the rerender', this.rerender, 'and this is the render func', rerenderFunc);
 		let element;
 		//Handles the tag
 		if(typeof this.tag === 'string') element = $(document.createElement(this.tag));
-		else if (this.tag instanceof Component) element = this.tag.render(dataId);
+		else if (this.tag instanceof Component) element = this.tag.render(this.rerender, dataId);
 
 		//Handles the attributes
 		element = parseAttrs(this.attrs, element);
@@ -95,13 +99,13 @@ class Component {
 		//Handles the children
 		if(this.children !== null){
 			if(typeof this.children === 'string' || typeof this.children === 'number') element.text(this.children);
-			else if(this.children instanceof Component) element.append(this.children.render([].concat(dataId, 0)));
+			else if(this.children instanceof Component) element.append(this.children.render(this.rerender, [].concat(dataId, 0)));
 			else if(this.children instanceof Array) this.children.map(function(child){
 				if(child instanceof Function) return child();
 				else if(typeof child === 'string' || typeof child === 'number') return new Component('p', null, child);
 				return child;
 			}).forEach(function(childEl, elIndex){
-				element.append(childEl.render([].concat(dataId, elIndex)));
+				element.append(childEl.render(this.rerender, [].concat(dataId, elIndex)));
 			});
 		}
 		element.attr('data-id', createDataId(dataId));
@@ -150,7 +154,14 @@ let createClass = (className, options) => {
 
 let render = function(element, attachTo){
 	if(!attachTo) throw new SyntaxError('Need a valid DOM specified on creation.');
-	$(attachTo).append(element.render());
+	let reRender = function(element, attachTo){
+		var $attachTo = $(attachTo);
+		return function(){
+			$attachTo.empty();
+			$attachTo.append(element.render());
+		};
+	}
+	$(attachTo).append(element.render(reRender(element, attachTo)));
 };
 
 export {Component, createElement, createClass, render};
